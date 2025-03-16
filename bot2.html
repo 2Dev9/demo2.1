@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مساعد زفاف ذكي</title>
+  <link href="https://fonts.googleapis.com/css?family=Great+Vibes|Roboto:400,500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #5a3e36;       /* Main brown color for buttons and accents */
+      --secondary: #7a5a52;     /* Slightly lighter brown for hover effect */
+      --bg: #F5F5DC;            /* Beige background */
+      --text: #5D4037;          /* Dark brown for text */
+      --header-bg: linear-gradient(135deg, var(--primary), var(--secondary));
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+    /* Full-Screen Chat Container */
+    .chat-box {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: rgba(245, 245, 220, 0.95);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* Header */
+    .chat-header {
+      padding: 20px;
+      background: var(--header-bg);
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .chat-header span {
+      font-family: 'Great Vibes', cursive;
+      font-size: 2em;
+    }
+    .header-buttons button {
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .header-buttons button:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+    /* Chat Body */
+    .chat-body {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .message {
+      padding: 12px 15px;
+      border-radius: 20px;
+      max-width: 80%;
+      font-size: 1em;
+      line-height: 1.4;
+      word-wrap: break-word;
+      animation: fadeInScale 0.3s ease;
+    }
+    @keyframes fadeInScale {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .bot-message {
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      color: var(--text);
+    }
+    .user-message {
+      background: var(--primary);
+      color: #fff;
+      align-self: flex-end;
+    }
+    /* Option Buttons */
+    .option-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 20px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+      margin-top: 5px;
+    }
+    .option-btn:hover {
+      background: var(--secondary);
+    }
+    .option-btn:active {
+      transform: scale(0.98);
+    }
+    /* Container for Initial Options */
+    #initialOptions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    /* Typing Indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      margin: 10px 0;
+    }
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: #ccc;
+      border-radius: 50%;
+      animation: bounce 1s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    /* Input Field */
+    .email-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      font-size: 1em;
+      margin-top: 10px;
+    }
+    .error-message {
+      color: #ff4d4d;
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-box" id="chatBox">
+  <div class="chat-header">
+    <span id="chatHeaderText">LUMO</span>
+    <div class="header-buttons">
+      <button id="homeButton">Accueil</button>
+    </div>
+  </div>
+  <div class="chat-body" id="chatBody">
+    <!-- Dynamic chat messages and options will be appended here -->
+  </div>
+</div>
+
+<script>
+  // Global variables
+  let currentLanguage = null;
+  let languagePromptDisplayed = false;
+  let weddingPlan = {}; // Object to store wedding game choices
+
+  // Language translations
+  const translations = {
+    ar: {
+      welcome: "🎉 مرحبا! أنا هنا لمساعدتك في تخطيط حفل الزفاف، من أين نبدأ؟",
+      header: "LUMO",
+      home: "الرئيسية",
+      packages: "عرض الباقات",
+      designs: "تصميم الدعوات",
+      booking: "حجز موعد",
+      tips: "نصائح الزفاف",
+      faq: "أسئلة شائعة",
+      game: "لعبة تنظيم الحفل",
+      back: "رجوع",
+      packagesMessage: "🎁 لدينا مجموعة مميزة من الباقات!",
+      designMessage: "🎨 لدينا العديد من التصاميم الرائعة!",
+      bookingMessage: "📅 متى ترغب في مقابلة الاستشاري؟",
+      tipsMessage: "📝 إليك بعض النصائح المفيدة!",
+      faqMessage: "❓ هل لديك أسئلة؟ إليك بعض الأسئلة الشائعة:",
+      chooseLanguage: "من فضلك اختر لغتك:",
+      languages: { ar: "العربية", en: "English", fr: "Français" },
+      invalidEmail: "❌ الرجاء إدخال بريد إلكتروني صالح."
+    },
+    en: {
+      welcome: "🎉 Hello! I'm here to help you plan your wedding, where do we start?",
+      header: "LUMO",
+      home: "Home",
+      packages: "View Packages",
+      designs: "Design Invitations",
+      booking: "Book an Appointment",
+      tips: "Wedding Tips",
+      faq: "FAQs",
+      game: "Plan Your Wedding Game",
+      back: "Back",
+      packagesMessage: "🎁 We have an amazing range of packages!",
+      designMessage: "🎨 We have many wonderful designs!",
+      bookingMessage: "📅 When would you like to meet with the consultant?",
+      tipsMessage: "📝 Here are some helpful tips!",
+      faqMessage: "❓ Do you have any questions? Here are some FAQs:",
+      chooseLanguage: "Please choose your language:",
+      languages: { ar: "العربية", en: "English", fr: "Français" },
+      invalidEmail: "❌ Please enter a valid email."
+    },
+    fr: {
+      welcome: "🎉 Bonjour! Je suis ici pour vous aider à planifier votre mariage, par où commencer?",
+      header: "LUMO",
+      home: "Accueil",
+      packages: "Voir les forfaits",
+      designs: "Concevoir les invitations",
+      booking: "Prendre rendez-vous",
+      tips: "Conseils de mariage",
+      faq: "FAQ",
+      game: "Jeu d'organisation de mariage",
+      back: "Retour",
+      packagesMessage: "🎁 Nous avons une gamme de forfaits incroyable!",
+      designMessage: "🎨 Nous avons de nombreux designs magnifiques!",
+      bookingMessage: "📅 Quand souhaitez-vous rencontrer le consultant?",
+      tipsMessage: "📝 Voici quelques conseils utiles!",
+      faqMessage: "❓ Avez-vous des questions? Voici quelques FAQ:",
+      chooseLanguage: "Veuillez choisir votre langue:",
+      languages: { ar: "العربية", en: "English", fr: "Français" },
+      invalidEmail: "❌ Veuillez saisir un email valide."
+    }
+  };
+
+  /* Helper: Create and return a button element with provided text and click callback */
+  function createOptionButton(text, callback) {
+    const btn = document.createElement("button");
+    btn.className = "option-btn";
+    btn.textContent = text;
+    btn.addEventListener("click", () => {
+      btn.style.transform = "scale(0.98)";
+      setTimeout(() => { btn.style.transform = ""; }, 150);
+      callback();
+    });
+    return btn;
+  }
+
+  /* Helper: Add a message to the chat body */
+  function addMessage(text, isUser = false, isKey = false) {
+    const chatBody = document.getElementById('chatBody');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+    if (isKey && !currentLanguage) {
+      msgDiv.textContent = translations["fr"].chooseLanguage;
+      msgDiv.classList.add("language-prompt");
+    } else {
+      msgDiv.textContent = text;
+    }
+    chatBody.appendChild(msgDiv);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  /* Helper: Remove all option buttons from chat body */
+  function removeOptionButtons() {
+    document.querySelectorAll('#chatBody .option-btn').forEach(btn => btn.remove());
+  }
+
+  /* Language selection UI */
+  function showLanguageSelection() {
+    const chatBody = document.getElementById("chatBody");
+    chatBody.innerHTML = "";
+    if (!languagePromptDisplayed) {
+      addMessage("", false, true);
+      languagePromptDisplayed = true;
+    }
+    const langOptions = translations["fr"].languages;
+    Object.keys(langOptions).forEach(lang => {
+      const btn = createOptionButton(langOptions[lang], () => selectLanguage(lang));
+      chatBody.appendChild(btn);
+    });
+  }
+
+  /* Set the selected language and update header texts */
+  function selectLanguage(lang) {
+    currentLanguage = lang;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+    document.getElementById('chatHeaderText').textContent = translations[lang].header;
+    document.getElementById('homeButton').textContent = translations[lang].home;
+    // Remove any language prompt messages
+    document.querySelectorAll('.language-prompt').forEach(el => el.remove());
+    removeOptionButtons();
+    addMessage(translations[lang].welcome);
+    showInitialOptions();
+  }
+
+  /* Reset language selection */
+  function goHome() {
+    currentLanguage = null;
+    languagePromptDisplayed = false;
+    document.getElementById('chatHeaderText').textContent = translations["fr"].header;
+    document.getElementById('homeButton').textContent = translations["fr"].home;
+    document.getElementById("chatBody").innerHTML = "";
+    showLanguageSelection();
+  }
+
+  /* Show initial options for the chatbot */
+  function showInitialOptions() {
+    const chatBody = document.getElementById('chatBody');
+    const optionsDiv = document.createElement("div");
+    optionsDiv.id = "initialOptions";
+    optionsDiv.appendChild(createOptionButton(translations[currentLanguage].packages, showPackages));
+    optionsDiv.appendChild(createOptionButton(translations[currentLanguage].designs, showDesigns));
+    optionsDiv.appendChild(createOptionButton(translations[currentLanguage].booking, startBooking));
+    optionsDiv.appendChild(createOptionButton(translations[currentLanguage].tips, showTips));
+    optionsDiv.appendChild(createOptionButton(translations[currentLanguage].faq, askAboutWedding));
+    optionsDiv.appendChild(createOptionButton(translations[currentLanguage].game, planWeddingGame));
+    optionsDiv.appendChild(createOptionButton(translations[currentLanguage].back, goHome));
+    chatBody.appendChild(optionsDiv);
+  }
+
+  /* Typing Indicator */
+  function showTypingIndicator() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'typing-indicator';
+    typingDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+    document.getElementById('chatBody').appendChild(typingDiv);
+  }
+  function hideTypingIndicator() {
+    const typingDiv = document.querySelector('.typing-indicator');
+    if (typingDiv) typingDiv.remove();
+  }
+
+  /* Packages section */
+  function showPackages() {
+    showTypingIndicator();
+    setTimeout(() => {
+      hideTypingIndicator();
+      addMessage(translations[currentLanguage].packagesMessage);
+      const packages = {
+        ar: [
+          '🎀 الباقة الأساسية - 5000 د.ج',
+          '🎀 الباقة الفاخرة - 8000 د.ج',
+          '🎀 الباقة الملكية - 12000 د.ج'
+        ],
+        en: [
+          '🎀 Basic Package - 5000 DZD',
+          '🎀 Premium Package - 8000 DZD',
+          '🎀 Royal Package - 12000 DZD'
+        ],
+        fr: [
+          '🎀 Forfait de base - 5000 DZD',
+          '🎀 Forfait premium - 8000 DZD',
+          '🎀 Forfait royal - 12000 DZD'
+        ]
+      };
+      packages[currentLanguage].forEach(pkg => {
+        const btn = createOptionButton(pkg, () => selectPackage(pkg));
+        document.getElementById('chatBody').appendChild(btn);
+      });
+    }, 1000);
+  }
+  function selectPackage(pkg) {
+    addMessage(pkg.split(' - ')[0], true);
+    const responses = {
+      ar: [
+        `💌 ممتاز! سنقوم بإرسال تفاصيل ${pkg} لبريدك الإلكتروني.`,
+        `📧 رائع! استعد لاستلام تفاصيل ${pkg} على بريدك الإلكتروني.`,
+        `✅ تم اختيار ${pkg.split(' - ')[0]}! ستصلك التفاصيل قريباً.`
+      ],
+      en: [
+        `💌 Great! We'll send the details of ${pkg} to your email.`,
+        `📧 Awesome! Get ready to receive details of ${pkg} in your email.`,
+        `✅ You selected ${pkg.split(' - ')[0]}! Details will follow soon.`
+      ],
+      fr: [
+        `💌 Super! Nous enverrons les détails de ${pkg} à votre email.`,
+        `📧 Génial! Préparez-vous à recevoir les détails de ${pkg} par email.`,
+        `✅ Vous avez choisi ${pkg.split(' - ')[0]}! Les détails suivront bientôt.`
+      ]
+    };
+    addMessage(getRandomItem(responses[currentLanguage]));
+    addMessage(
+      currentLanguage === 'ar'
+        ? '📧 الرجاء إدخال بريدك الإلكتروني:'
+        : currentLanguage === 'en'
+        ? '📧 Please enter your email:'
+        : '📧 Veuillez saisir votre email:'
+    );
+    const input = document.createElement('input');
+    input.type = 'email';
+    input.placeholder = 'example@email.com';
+    input.className = 'email-input';
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        if (!validateEmail(input.value)) {
+          showError(translations[currentLanguage].invalidEmail);
+        } else {
+          clearError();
+          confirmEmail(input.value);
+          input.remove();
+        }
+      }
+    });
+    document.getElementById('chatBody').appendChild(input);
+  }
+  function validateEmail(email) {
+    const regex = /\S+@\S+\.\S+/;
+    return regex.test(email);
+  }
+  function showError(message) {
+    clearError();
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    document.getElementById('chatBody').appendChild(errorDiv);
+  }
+  function clearError() {
+    document.querySelectorAll('.error-message').forEach(el => el.remove());
+  }
+  function confirmEmail(email) {
+    addMessage(email, true);
+    const responses = {
+      ar: [
+        '✅ تم الإرسال! ستستلم التفاصيل خلال دقائق.',
+        '📬 بريدك تم تأكيده وسيصلك كل جديد قريباً.'
+      ],
+      en: [
+        '✅ Sent! You will receive the details shortly.',
+        '📬 Your email has been confirmed. Stay tuned for updates.'
+      ],
+      fr: [
+        '✅ Envoyé! Vous recevrez les détails sous peu.',
+        '📬 Votre email a été confirmé. Restez à l’écoute pour plus d’informations.'
+      ]
+    };
+    addMessage(getRandomItem(responses[currentLanguage]));
+  }
+  /* Designs section */
+  function showDesigns() {
+    showTypingIndicator();
+    setTimeout(() => {
+      hideTypingIndicator();
+      addMessage(translations[currentLanguage].designMessage);
+      const designs = {
+        ar: ['🖼️ تصميم كلاسيكي', '🖼️ تصميم عصري', '🖼️ تصميم مخصص'],
+        en: ['🖼️ Classic Design', '🖼️ Modern Design', '🖼️ Custom Design'],
+        fr: ['🖼️ Design classique', '🖼️ Design moderne', '🖼️ Design personnalisé']
+      };
+      designs[currentLanguage].forEach(design => {
+        const btn = createOptionButton(design, () => selectDesign(design));
+        document.getElementById('chatBody').appendChild(btn);
+      });
+    }, 1000);
+  }
+  function selectDesign(design) {
+    addMessage(design, true);
+    const responses = {
+      ar: [
+        '✨ سنقوم بتصميم نموذج مبدئي خلال 24 ساعة!',
+        '🚀 تصميمك المبدئي في الطريق خلال يومين!'
+      ],
+      en: [
+        '✨ Your prototype will be ready within 24 hours!',
+        '🚀 Your design is on its way and will be ready in two days!'
+      ],
+      fr: [
+        '✨ Votre prototype sera prêt sous 24 heures!',
+        '🚀 Votre design est en route et sera prêt en deux jours!'
+      ]
+    };
+    addMessage(getRandomItem(responses[currentLanguage]));
+  }
+  /* Booking section */
+  function startBooking() {
+    showTypingIndicator();
+    setTimeout(() => {
+      hideTypingIndicator();
+      addMessage(translations[currentLanguage].bookingMessage);
+      const dates = {
+        ar: ['غدًا', 'بعد غد', 'الأسبوع القادم'],
+        en: ['Tomorrow', 'The day after tomorrow', 'Next week'],
+        fr: ['Demain', 'Après-demain', 'La semaine prochaine']
+      };
+      dates[currentLanguage].forEach(date => {
+        const btn = createOptionButton(date, () => confirmDate(date));
+        document.getElementById('chatBody').appendChild(btn);
+      });
+    }, 1000);
+  }
+  function confirmDate(date) {
+    addMessage(date, true);
+    const responses = {
+      ar: [
+        `🕒 تم الحجز! سنتواصل معك في ${date} الساعة 4 مساءً.`,
+        `📆 موعدك مع الاستشاري في ${date} تم تأكيده.`
+      ],
+      en: [
+        `🕒 Booked! We will contact you on ${date} at 4 PM.`,
+        `📆 Your appointment with the consultant on ${date} is confirmed.`
+      ],
+      fr: [
+        `🕒 Réservé! Nous vous contacterons ${date} à 16h.`,
+        `📆 Votre rendez-vous avec le consultant ${date} est confirmé.`
+      ]
+    };
+    addMessage(getRandomItem(responses[currentLanguage]));
+  }
+  /* Wedding Tips section */
+  function showTips() {
+    showTypingIndicator();
+    setTimeout(() => {
+      hideTypingIndicator();
+      addMessage(translations[currentLanguage].tipsMessage);
+      const tips = {
+        ar: [
+          "🎊 تأكد من تحديد ميزانية واضحة لحفل الزفاف.",
+          "🎊 قم بإنشاء قائمة الضيوف مبكرًا لتسهيل التخطيط.",
+          "🎊 اختر مكانًا يناسب عدد الضيوف والميزانية.",
+          "🎊 لا تنسى توثيق اللحظات الجميلة مع مصور محترف."
+        ],
+        en: [
+          "🎊 Make sure to set a clear budget for your wedding.",
+          "🎊 Create your guest list early to ease planning.",
+          "🎊 Choose a venue that fits your guest count and budget.",
+          "🎊 Don’t forget to capture beautiful moments with a professional photographer."
+        ],
+        fr: [
+          "🎊 Assurez-vous de définir un budget clair pour votre mariage.",
+          "🎊 Établissez votre liste d'invités tôt pour faciliter l'organisation.",
+          "🎊 Choisissez un lieu qui correspond au nombre d'invités et au budget.",
+          "🎊 N'oubliez pas de capturer les moments précieux avec un photographe professionnel."
+        ]
+      };
+      tips[currentLanguage].forEach(tip => addMessage(tip));
+    }, 1000);
+  }
+  /* FAQ section */
+  function askAboutWedding() {
+    showTypingIndicator();
+    setTimeout(() => {
+      hideTypingIndicator();
+      addMessage(translations[currentLanguage].faqMessage);
+      const questions = {
+        ar: [
+          "ما هي أفضل الباقات المتاحة؟",
+          "كيف يمكنني حجز موعد؟",
+          "ما هي خيارات تصميم الدعوات؟"
+        ],
+        en: [
+          "What are the best available packages?",
+          "How do I book an appointment?",
+          "What are the invitation design options?"
+        ],
+        fr: [
+          "Quels sont les meilleurs forfaits disponibles?",
+          "Comment puis-je prendre rendez-vous?",
+          "Quelles sont les options de conception des invitations?"
+        ]
+      };
+      questions[currentLanguage].forEach(question => {
+        const btn = createOptionButton(question, () => respondToQuestion(question));
+        document.getElementById('chatBody').appendChild(btn);
+      });
+    }, 1000);
+  }
+  function respondToQuestion(question) {
+    addMessage(question, true);
+    let response = "";
+    if (question === (currentLanguage === 'ar' ? "ما هي أفضل الباقات المتاحة؟" : currentLanguage === 'en' ? "What are the best available packages?" : "Quels sont les meilleurs forfaits disponibles?")) {
+      response = currentLanguage === 'ar'
+        ? getRandomItem(["🎁 لدينا ثلاث باقات: الأساسية، الفاخرة، والملكية. يمكنك اختيار ما يناسبك!", "🎉 خياراتنا متنوعة لتلبية احتياجاتك، اختر من الباقات الأساسية والفاخرة والملكية."])
+        : currentLanguage === 'en'
+        ? getRandomItem(["🎁 We offer three packages: Basic, Premium, and Royal. Choose the one that suits you best!", "🎉 Our options are varied to meet your needs. Select from Basic, Premium, or Royal packages."])
+        : getRandomItem(["🎁 Nous proposons trois forfaits : de base, premium et royal. Choisissez celui qui vous convient le mieux!", "🎉 Nos options sont variées pour répondre à vos besoins, choisissez parmi les forfaits de base, premium ou royal."]);
+    } else if (question === (currentLanguage === 'ar' ? "كيف يمكنني حجز موعد؟" : currentLanguage === 'en' ? "How do I book an appointment?" : "Comment puis-je prendre rendez-vous?")) {
+      response = currentLanguage === 'ar'
+        ? getRandomItem(["📅 يمكنك حجز موعد من خلال الضغط على زر 'حجز موعد' واختيار التاريخ.", "⏰ حجز الموعد سهل، فقط اضغط على 'حجز موعد' واتبع التعليمات."])
+        : currentLanguage === 'en'
+        ? getRandomItem(["📅 You can book an appointment by clicking the 'Book an Appointment' button and selecting a date.", "⏰ Booking is easy, just click 'Book an Appointment' and follow the instructions."])
+        : getRandomItem(["📅 Vous pouvez prendre rendez-vous en cliquant sur 'Prendre rendez-vous' et en sélectionnant une date.", "⏰ La réservation est simple, cliquez sur 'Prendre rendez-vous' et suivez les instructions."]);
+    } else if (question === (currentLanguage === 'ar' ? "ما هي خيارات تصميم الدعوات؟" : currentLanguage === 'en' ? "What are the invitation design options?" : "Quelles sont les options de conception des invitations?")) {
+      response = currentLanguage === 'ar'
+        ? getRandomItem(["🎨 لدينا تصاميم كلاسيكية، عصرية، ومخصصة حسب رغبتك.", "🖌️ خيارات تصميم الدعوات لدينا تشمل النمط الكلاسيكي والعصري، ويمكن تخصيصها بالكامل."])
+        : currentLanguage === 'en'
+        ? getRandomItem(["🎨 We offer Classic, Modern, and Custom invitation designs.", "🖌️ Our invitation design options include Classic and Modern styles, fully customizable."])
+        : getRandomItem(["🎨 Nous proposons des designs classiques, modernes et personnalisés.", "🖌️ Nos options de conception des invitations incluent des styles classiques et modernes, entièrement personnalisables."]);
+    } else {
+      response = currentLanguage === 'ar'
+        ? "🤔 عذرًا، لا أستطيع مساعدتك في ذلك."
+        : currentLanguage === 'en'
+        ? "🤔 Sorry, I can't assist with that."
+        : "🤔 Désolé, je ne peux pas vous aider avec cela.";
+    }
+    addMessage(response);
+  }
+  /* Wedding Game: Interactive wedding planning */
+  function planWeddingGame() {
+    weddingPlan = {};
+    addMessage(
+      currentLanguage === 'ar'
+        ? "🎮 مرحبًا بك في لعبة تنظيم حفل الزفاف التفاعلية!"
+        : currentLanguage === 'en'
+        ? "🎮 Welcome to the interactive wedding planning game!"
+        : "🎮 Bienvenue dans le jeu interactif d'organisation de mariage!"
+    );
+    addMessage(
+      currentLanguage === 'ar'
+        ? "لنبدأ أولاً، اختر المكان المثالي لإقامة الحفل:"
+        : currentLanguage === 'en'
+        ? "Let's start by choosing the perfect venue for the wedding:"
+        : "Commençons par choisir le lieu idéal pour le mariage:"
+    );
+    removeOptionButtons();
+    const venues = {
+      ar: ["قاعة فخمة", "حديقة رومانسية", "شاطئ البحر", "فندق خمس نجوم"],
+      en: ["Luxurious Hall", "Romantic Garden", "Beachside", "Five Star Hotel"],
+      fr: ["Salle luxueuse", "Jardin romantique", "Bord de mer", "Hôtel cinq étoiles"]
+    };
+    venues[currentLanguage].forEach(venue => {
+      const btn = createOptionButton(venue, () => selectVenue(venue));
+      document.getElementById('chatBody').appendChild(btn);
+    });
+  }
+  function selectVenue(venue) {
+    weddingPlan.venue = venue;
+    addMessage(`${currentLanguage === 'ar' ? "لقد اخترت:" : currentLanguage === 'en' ? "You chose:" : "Vous avez choisi:"} ${venue}`, true);
+    removeOptionButtons();
+    addMessage(
+      currentLanguage === 'ar'
+        ? "الآن اختر لون الديكور المفضل:"
+        : currentLanguage === 'en'
+        ? "Now choose your preferred decor color:"
+        : "Choisissez maintenant la couleur de décoration préférée:"
+    );
+    const decors = {
+      ar: ["وردي", "أزرق", "ذهبي", "أخضر"],
+      en: ["Pink", "Blue", "Gold", "Green"],
+      fr: ["Rose", "Bleu", "Doré", "Vert"]
+    };
+    decors[currentLanguage].forEach(decor => {
+      const btn = createOptionButton(decor, () => selectDecor(decor));
+      document.getElementById('chatBody').appendChild(btn);
+    });
+  }
+  function selectDecor(decor) {
+    weddingPlan.decor = decor;
+    addMessage(`${currentLanguage === 'ar' ? "لقد اخترت:" : currentLanguage === 'en' ? "You chose:" : "Vous avez choisi:"} ${decor}`, true);
+    removeOptionButtons();
+    addMessage(
+      currentLanguage === 'ar'
+        ? "اختر نوع الكعكة لليلة الزفاف:"
+        : currentLanguage === 'en'
+        ? "Choose the type of wedding cake:"
+        : "Choisissez le type de gâteau de mariage:"
+    );
+    const cakes = {
+      ar: ["كعكة تقليدية", "كعكة حديثة", "كعكة الفواكه", "كعكة الشوكولاتة"],
+      en: ["Traditional Cake", "Modern Cake", "Fruit Cake", "Chocolate Cake"],
+      fr: ["Gâteau traditionnel", "Gâteau moderne", "Gâteau aux fruits", "Gâteau au chocolat"]
+    };
+    cakes[currentLanguage].forEach(cake => {
+      const btn = createOptionButton(cake, () => selectCake(cake));
+      document.getElementById('chatBody').appendChild(btn);
+    });
+  }
+  function selectCake(cake) {
+    weddingPlan.cake = cake;
+    addMessage(`${currentLanguage === 'ar' ? "لقد اخترت:" : currentLanguage === 'en' ? "You chose:" : "Vous avez choisi:"} ${cake}`, true);
+    removeOptionButtons();
+    displayWeddingPlan();
+  }
+  function displayWeddingPlan() {
+    addMessage(
+      currentLanguage === 'ar'
+        ? "✨ إليك خطة زفافك المثالية:"
+        : currentLanguage === 'en'
+        ? "✨ Here is your ideal wedding plan:"
+        : "✨ Voici votre plan de mariage idéal:"
+    );
+    addMessage(`${currentLanguage === 'ar' ? "المكان:" : currentLanguage === 'en' ? "Venue:" : "Lieu:"} ${weddingPlan.venue}`);
+    addMessage(`${currentLanguage === 'ar' ? "الديكور:" : currentLanguage === 'en' ? "Decor:" : "Décor:"} ${weddingPlan.decor}`);
+    addMessage(`${currentLanguage === 'ar' ? "الكعكة:" : currentLanguage === 'en' ? "Cake:" : "Gâteau:"} ${weddingPlan.cake}`);
+    addMessage(
+      currentLanguage === 'ar'
+        ? "🎉 تهانينا! لقد قمت بتنظيم حفل زفاف أحلامك!"
+        : currentLanguage === 'en'
+        ? "🎉 Congratulations! You've planned your dream wedding!"
+        : "🎉 Félicitations! Vous avez planifié le mariage de vos rêves!"
+    );
+  }
+  document.getElementById("homeButton").addEventListener("click", goHome);
+  // When the site refreshes, display the language selection screen as the main page.
+  window.addEventListener('DOMContentLoaded', () => {
+    showLanguageSelection();
+  });
+  // Helper function to get a random item from an array.
+  function getRandomItem(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+</script>
+
+</body>
+</html>
